@@ -22,7 +22,10 @@ package transport
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"time"
 
@@ -54,6 +57,9 @@ type GRPCOptions struct {
 	RoutingKey      string
 	RoutingDelegate string
 	MaxResponseSize int
+	CAPath          string
+	CertPath        string
+	PrivateKeyPath  string
 }
 
 // NewGRPC returns a transport that calls a GRPC service.
@@ -90,6 +96,35 @@ func newGRPC(options GRPCOptions) (*grpcTransport, error) {
 
 	transport := grpc.NewTransport(transportOptions...)
 	outbound := transport.NewOutbound(peer.Bind(roundrobin.New(transport), peer.BindPeers(peersToIdentifiers(options.Addresses))))
+
+	if options.CAPath != "" && options.CertPath != "" && options.PrivateKeyPath != "" {
+		ca, err := ioutil.ReadFile(options.CAPath)
+		if err != nil {
+			return nil, fmt.Errorf("could not load ca %v", err)
+		}
+
+		certPool := x509.NewCertPool()
+		if !certPool.AppendCertsFromPEM(ca) {
+			return nil, errors.New("failed to append ca")
+		}
+
+		clientCert, err := tls.LoadX509KeyPair(options.CertPath, options.PrivateKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load X509 keypair %v", err)
+		}
+
+		dialOptions := []grpc.DialOption{
+			grpc.DialerTLSConfig(&tls.Config{
+				RootCAs:            certPool,
+				Certificates:       []tls.Certificate{clientCert},
+				InsecureSkipVerify: true,
+			}),
+		}
+
+		chooser := peer.NewSingle(hostport.Identify(options.Addresses[0]), transport.NewDialer(dialOptions...))
+		outbound = transport.NewOutbound(chooser)
+	}
+
 	if err := transport.Start(); err != nil {
 		return nil, err
 	}

@@ -93,6 +93,9 @@ type TransportOptions struct {
 	TransportHeaders    map[string]string `short:"T" long:"topt" description:"Transport options for TChannel, protocol headers for HTTP"`
 	HTTPMethod          string            `long:"http-method" description:"The HTTP method to use"`
 	GRPCMaxResponseSize int               `long:"grpc-max-response-size" description:"Maximum response size for gRPC requests. Default value is 4MB"`
+	CAPath              string            `long:"ca-path" description:"path of CA to use in TLS config"`
+	CertPath            string            `long:"cert-path" description:"path of cert to use in TLS config"`
+	PrivateKeyPath      string            `long:"key-path" description:"path of private key to use in TLS config"`
 
 	// This is a hack to work around go-flags not allowing disabling flags:
 	// https://github.com/jessevdk/go-flags/issues/191

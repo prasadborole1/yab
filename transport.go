@@ -172,6 +172,9 @@ func getTransport(opts TransportOptions, resolved resolvedProtocolEncoding, trac
 			RoutingKey:      opts.RoutingKey,
 			RoutingDelegate: opts.RoutingDelegate,
 			MaxResponseSize: opts.GRPCMaxResponseSize,
+			CAPath:          opts.CAPath,
+			CertPath:        opts.CertPath,
+			PrivateKeyPath:  opts.PrivateKeyPath,
 		})
 	}
 
