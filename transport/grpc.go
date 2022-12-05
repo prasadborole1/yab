@@ -95,8 +95,7 @@ func newGRPC(options GRPCOptions) (*grpcTransport, error) {
 	}
 
 	transport := grpc.NewTransport(transportOptions...)
-	outbound := transport.NewOutbound(peer.Bind(roundrobin.New(transport), peer.BindPeers(peersToIdentifiers(options.Addresses))))
-
+	var peerTransport apipeer.Transport = transport
 	if options.CAPath != "" && options.CertPath != "" && options.PrivateKeyPath != "" {
 		ca, err := ioutil.ReadFile(options.CAPath)
 		if err != nil {
@@ -121,9 +120,9 @@ func newGRPC(options GRPCOptions) (*grpcTransport, error) {
 			}),
 		}
 
-		chooser := peer.NewSingle(hostport.Identify(options.Addresses[0]), transport.NewDialer(dialOptions...))
-		outbound = transport.NewOutbound(chooser)
+		peerTransport = transport.NewDialer(dialOptions...)
 	}
+	outbound := transport.NewOutbound(peer.Bind(roundrobin.New(peerTransport), peer.BindPeers(peersToIdentifiers(options.Addresses))))
 
 	if err := transport.Start(); err != nil {
 		return nil, err
